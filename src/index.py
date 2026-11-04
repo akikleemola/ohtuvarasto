@@ -1,9 +1,9 @@
 from varasto import Varasto
 
 def tulosta_luonnin_jalkeen(mehua, olutta):
-    print("Luonnin jälkeen:")
-    print(f"Mehuvarasto: {mehua}")
-    print(f"Olutvarasto: {olutta}")
+  print("Luonnin jälkeen:")
+  print(f"Mehuvarasto: {mehua}")
+  print(f"Olutvarasto: {olutta}")
 
 
 def tulosta_oluen_tiedot(olutta):
