@@ -19,6 +19,17 @@ def lue_positiivinen_luku(
         flash(puuttuu_viesti)
         return None
 
+    luku = parsi_luku(teksti, virhe_viesti)
+    if luku is None:
+        return None
+
+    if luku <= 0:
+        flash(positiivinen_viesti)
+        return None
+    return luku
+
+
+def parsi_luku(teksti, virhe_viesti):
     try:
         luku = float(teksti)
     except ValueError:
@@ -27,10 +38,6 @@ def lue_positiivinen_luku(
 
     if not math.isfinite(luku):
         flash(virhe_viesti)
-        return None
-
-    if luku <= 0:
-        flash(positiivinen_viesti)
         return None
     return luku
 
