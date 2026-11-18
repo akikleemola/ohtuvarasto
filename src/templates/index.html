@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="utf-8">
+    <title>Ohtuvarasto</title>
+  </head>
+  <body>
+    <h1>Ohtuvarasto</h1>
+
+    {% with viestit = get_flashed_messages() %}
+      {% if viestit %}
+        <ul>
+          {% for viesti in viestit %}
+            <li>{{ viesti }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <h2>Uusi varasto</h2>
+    <form method="post" action="{{ url_for('index') }}">
+      <label>Nimi
+        <input type="text" name="nimi">
+      </label>
+      <label>Tilavuus
+        <input type="text" name="tilavuus">
+      </label>
+      <button type="submit">Luo varasto</button>
+    </form>
+
+    <h2>Varastot</h2>
+    {% if varastot %}
+      <ul>
+        {% for id, tiedot in varastot.items() %}
+          <li>
+            <strong>{{ tiedot.nimi }}</strong>
+            — tilavuus {{ tiedot.varasto.tilavuus }},
+            saldo {{ tiedot.varasto.saldo }}
+
+            <form method="post" action="{{ url_for('muuta_saldoa', varasto_id=id, toiminto='lisaa') }}">
+              <label>Määrä
+                <input type="text" name="maara">
+              </label>
+              <button type="submit">Lisää tavaraa</button>
+            </form>
+
+            <form method="post" action="{{ url_for('muuta_saldoa', varasto_id=id, toiminto='ota') }}">
+              <label>Määrä
+                <input type="text" name="maara">
+              </label>
+              <button type="submit">Ota tavaraa</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Varastoja ei ole vielä.</p>
+    {% endif %}
+  </body>
+</html>
