@@ -1,3 +1,5 @@
+import math
+
 from flask import Flask, flash, redirect, render_template, request, url_for
 
 from varasto import Varasto
@@ -20,6 +22,10 @@ def lue_positiivinen_luku(
     try:
         luku = float(teksti)
     except ValueError:
+        flash(virhe_viesti)
+        return None
+
+    if not math.isfinite(luku):
         flash(virhe_viesti)
         return None
 

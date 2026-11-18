@@ -60,7 +60,7 @@ def test_tavaran_otto_paivittaa_saldon(client):
     assert "saldo 6.0" in vastaus.get_data(as_text=True)
 
 
-def test_virheellinen_lomakesyote_nayttaa_virheilmoituksen(client):
+def test_puuttuva_nimi_nayttaa_virheilmoituksen(client):
     vastaus = client.post(
         "/",
         data={"nimi": "", "tilavuus": "ei-luku"},
@@ -68,3 +68,53 @@ def test_virheellinen_lomakesyote_nayttaa_virheilmoituksen(client):
     )
 
     assert "Anna varastolle nimi." in vastaus.get_data(as_text=True)
+
+
+@pytest.mark.parametrize(
+    "tilavuus",
+    ["ei-luku", "NaN", "inf"],
+)
+def test_virheellinen_tilavuus_ei_luo_varastoa(client, tilavuus):
+    vastaus = client.post(
+        "/",
+        data={"nimi": "Testivarasto", "tilavuus": tilavuus},
+        follow_redirects=True,
+    )
+
+    teksti = vastaus.get_data(as_text=True)
+    assert "Tilavuuden on oltava numero." in teksti
+    assert "Testivarasto" not in teksti
+    assert not app.varastot
+
+
+@pytest.mark.parametrize("tilavuus", ["0", "-5"])
+def test_nollan_tai_negatiivisen_tilavuus_ei_luo_varastoa(client, tilavuus):
+    vastaus = client.post(
+        "/",
+        data={"nimi": "Testivarasto", "tilavuus": tilavuus},
+        follow_redirects=True,
+    )
+
+    teksti = vastaus.get_data(as_text=True)
+    assert "Tilavuuden on oltava suurempi kuin nolla." in teksti
+    assert "Testivarasto" not in teksti
+    assert not app.varastot
+
+
+@pytest.mark.parametrize(
+    "maara",
+    ["", "ei-luku", "NaN", "inf", "0", "-5"],
+)
+@pytest.mark.parametrize("toiminto", ["lisaa", "ota"])
+def test_virheellinen_maara_ei_muuta_saldoa(client, toiminto, maara):
+    client.post("/", data={"nimi": "Testivarasto", "tilavuus": "20"})
+    client.post("/varastot/1/lisaa", data={"maara": "10"})
+
+    vastaus = client.post(
+        f"/varastot/1/{toiminto}",
+        data={"maara": maara},
+        follow_redirects=True,
+    )
+
+    teksti = vastaus.get_data(as_text=True)
+    assert "saldo 10.0" in teksti
