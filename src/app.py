@@ -7,36 +7,58 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "ohtuvarasto-kehityssalaisuus"
 
 varastot = {}
-seuraava_id = 1
+SEURAAVA_ID = {"arvo": 1}
+
+
+def lue_positiivinen_luku(
+    teksti, puuttuu_viesti, virhe_viesti, positiivinen_viesti
+):
+    if not teksti:
+        flash(puuttuu_viesti)
+        return None
+
+    try:
+        luku = float(teksti)
+    except ValueError:
+        flash(virhe_viesti)
+        return None
+
+    if luku <= 0:
+        flash(positiivinen_viesti)
+        return None
+    return luku
+
+
+def lisaa_varasto(nimi, tilavuus_teksti):
+    if not nimi:
+        flash("Anna varastolle nimi.")
+        return False
+
+    tilavuus = lue_positiivinen_luku(
+        tilavuus_teksti,
+        "Anna varaston tilavuus.",
+        "Tilavuuden on oltava numero.",
+        "Tilavuuden on oltava suurempi kuin nolla.",
+    )
+    if tilavuus is None:
+        return False
+
+    varasto_id = SEURAAVA_ID["arvo"]
+    varastot[varasto_id] = {
+        "nimi": nimi,
+        "varasto": Varasto(tilavuus),
+    }
+    SEURAAVA_ID["arvo"] += 1
+    return True
 
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    global seuraava_id
-
     if request.method == "POST":
         nimi = request.form.get("nimi", "").strip()
         tilavuus_teksti = request.form.get("tilavuus", "").strip()
-
-        if not nimi:
-            flash("Anna varastolle nimi.")
-        elif not tilavuus_teksti:
-            flash("Anna varaston tilavuus.")
-        else:
-            try:
-                tilavuus = float(tilavuus_teksti)
-            except ValueError:
-                flash("Tilavuuden on oltava numero.")
-            else:
-                if tilavuus <= 0:
-                    flash("Tilavuuden on oltava suurempi kuin nolla.")
-                else:
-                    varastot[seuraava_id] = {
-                        "nimi": nimi,
-                        "varasto": Varasto(tilavuus),
-                    }
-                    seuraava_id += 1
-                    return redirect(url_for("index"))
+        if lisaa_varasto(nimi, tilavuus_teksti):
+            return redirect(url_for("index"))
 
     return render_template("index.html", varastot=varastot)
 
@@ -47,21 +69,22 @@ def muuta_saldoa(varasto_id, toiminto):
         flash("Varastoa ei löytynyt.")
         return redirect(url_for("index"))
 
-    maara_teksti = request.form.get("maara", "").strip()
-    if not maara_teksti:
-        flash("Anna lisättävä tai otettava määrä.")
-        return redirect(url_for("index"))
+    maara = lue_maara()
+    if maara is not None:
+        suorita_muutos(varasto_id, toiminto, maara)
+    return redirect(url_for("index"))
 
-    try:
-        maara = float(maara_teksti)
-    except ValueError:
-        flash("Määrän on oltava numero.")
-        return redirect(url_for("index"))
 
-    if maara <= 0:
-        flash("Määrän on oltava suurempi kuin nolla.")
-        return redirect(url_for("index"))
+def lue_maara():
+    return lue_positiivinen_luku(
+        request.form.get("maara", "").strip(),
+        "Anna lisättävä tai otettava määrä.",
+        "Määrän on oltava numero.",
+        "Määrän on oltava suurempi kuin nolla.",
+    )
 
+
+def suorita_muutos(varasto_id, toiminto, maara):
     varasto = varastot[varasto_id]["varasto"]
     if toiminto == "lisaa":
         varasto.lisaa_varastoon(maara)
@@ -70,8 +93,6 @@ def muuta_saldoa(varasto_id, toiminto):
     else:
         flash("Tuntematon toiminto.")
 
-    return redirect(url_for("index"))
-
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
